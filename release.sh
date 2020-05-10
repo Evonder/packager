@@ -2199,6 +2199,8 @@ if [ -z "$skip_zipfile" ]; then
 		echo
 
 		rm -f "$resultfile" 2>/dev/null
+	else
+		echo "CurseForge is marked to be skipped."
 	fi
 
 	if [ -n "$upload_wowinterface" ]; then
