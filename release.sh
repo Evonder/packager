@@ -2120,6 +2120,8 @@ if [ -z "$skip_zipfile" ]; then
 			upload_curseforge=
 			exit_code=1
 		fi
+	else
+		echo "CurseForge is marked to be skipped."
 	fi
 
 	# Upload to CurseForge.
