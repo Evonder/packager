@@ -827,7 +827,13 @@ if [ -z "$toc_version" ]; then
 fi
 
 # Get the title of the project for using in the changelog.
-project=$( echo "$toc_file" | awk '/^## Title:/' | sed -e 's/## Title\s*:\s*\(.*\)\s*/\1/' -e 's/|c[0-9A-Fa-f]\{8\}//g' -e 's/|r//g' )
+is_localized=$( grep -ic "## Title: @localization" $toc_file )
+if (( $is_localized >= 1 ))
+then
+	package="$toc_name"
+else
+	project=$( echo "$toc_file" | awk '/^## Title:/' | sed -e 's/## Title\s*:\s*\(.*\)\s*/\1/' -e 's/|c[0-9A-Fa-f]\{8\}//g' -e 's/|r//g' )
+fi
 # Grab CurseForge ID and WoWI ID from the TOC file if not set by the script.
 if [ -z "$slug" ]; then
 	slug=$( echo "$toc_file" | awk '/^## X-Curse-Project-ID:/ { print $NF }' )
