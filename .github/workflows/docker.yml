@@ -13,18 +13,18 @@ jobs:
       - uses: actions/checkout@v1
 
       - name: Authenticate with registry
-        run: docker login docker.pkg.github.com -u "BigWigsMods" -p "${{ secrets.DOCKER_PASS }}"
+        run: docker login docker.pkg.github.com -u "Evonder" -p "${{ secrets.DOCKER_PASS }}"
 
       - name: Build the image
         run: docker build . -t packager
 
       - name: Push the latest tag
         run: |
-          docker tag packager docker.pkg.github.com/bigwigsmods/packager/packager:latest
-          docker push docker.pkg.github.com/bigwigsmods/packager/packager:latest
+          docker tag packager docker.pkg.github.com/evonder/packager/packager:latest
+          docker push docker.pkg.github.com/evonder/packager/packager:latest
 
       - name: Push the nightly tag
         run: |
           TAG="$(date -u +%Y%m%d%H%M%S)"
-          docker tag packager docker.pkg.github.com/bigwigsmods/packager/packager:$TAG
-          docker push docker.pkg.github.com/bigwigsmods/packager/packager:$TAG
+          docker tag packager docker.pkg.github.com/evonder/packager/packager:$TAG
+          docker push docker.pkg.github.com/evonder/packager/packager:$TAG
