@@ -248,7 +248,7 @@ elif [ -f ".env" ]; then
 	. ".env"
 fi
 [ -z "$cf_token" ] && cf_token=$CF_API_KEY
-[ -z "$github_token" ] && github_token=$GH_API_TOKEN
+[ -z "$github_token" ] && github_token=$GITHUB_OAUTH
 [ -z "$wowi_token" ] && wowi_token=$WOWI_API_TOKEN
 
 # Set $releasedir to the directory which will contain the generated addon zipfile.
