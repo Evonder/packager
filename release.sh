@@ -542,7 +542,9 @@ project_github_url=
 project_github_slug=
 if [[ "$si_repo_url" == "https://github.com"* ]]; then
 	project_github_url=${si_repo_url%.git}
+	echo "project_github_url: $project_github_url"
 	project_github_slug=${project_github_url#https://github.com/}
+	echo "project_github_slug: $project_github_slug"
 fi
 project_site=
 
