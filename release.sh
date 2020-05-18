@@ -827,7 +827,7 @@ if [ -z "$toc_version" ]; then
 fi
 
 # Get the title of the project for using in the changelog.
-is_localized=$( grep -ic "## Title: @localization" $toc_file )
+is_localized=$( grep -ic "## Title: @localization" $tocfile )
 if (( $is_localized >= 1 ))
 then
 	package="$toc_name"
