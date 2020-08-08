@@ -36,7 +36,7 @@ if [ -n "$TRAVIS" ]; then
 	fi
 	if [ -z "$TRAVIS_TAG" ]; then
 		# don't need to run the packager if there is a tag pending
-		TRAVIS_TAG=$( git -C "$TRAVIS_BUILD_DIR" tag --points-at )
+		TRAVIS_TAG=$( git -C "$TRAVIS_BUILD_DIR" tag --points-at HEAD )
 		if [ -n "$TRAVIS_TAG" ]; then
 			echo "Found future tag \"${TRAVIS_TAG}\", not packaging."
 			exit 0
@@ -50,7 +50,7 @@ if [ -n "$TRAVIS" ]; then
 fi
 # actions check to prevent duplicate builds
 if [[ -n "$GITHUB_ACTIONS" && "$GITHUB_REF" == "refs/heads"* ]]; then
-	GITHUB_TAG=$( git -C "$GITHUB_WORKSPACE" tag --points-at )
+	GITHUB_TAG=$( git -C "$GITHUB_WORKSPACE" tag --points-at HEAD )
 	if [ -n "$GITHUB_TAG" ]; then
 		echo "Found future tag \"${GITHUB_TAG}\", not packaging."
 		exit 0
@@ -92,12 +92,6 @@ classic=
 
 # Script return code
 exit_code=0
-
-# Classic version info for special handling
-declare -A CLASSIC_VERSIONS
-CLASSIC_VERSIONS["1.13.2"]="11302"
-CLASSIC_VERSIONS["1.13.3"]="11303"
-CLASSIC_VERSIONS["1.13.4"]="11304"
 
 # Process command-line options
 usage() {
@@ -183,16 +177,18 @@ while getopts ":celLzusop:dw:r:t:g:m:" opt; do
 		# Set version (x.y.z)
 		IFS=',' read -ra V <<< "$OPTARG"
 		for i in "${V[@]}"; do
-			if [[ ! "$i" =~ ^[0-9]+\.[0-9]+\.[0-9]+[a-z]?$ ]]; then
+			if [[ ! "$i" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)[a-z]?$ ]]; then
 				echo "Invalid argument for option \"-g\" ($OPTARG)" >&2
 				usage
 				exit 1
 			fi
-			if [ -n "${CLASSIC_VERSIONS[$i]}" ]; then
+			if [[ ${BASH_REMATCH[1]} == "1" && ${BASH_REMATCH[2]} == "13" ]]; then
 				classic="true"
-				toc_version="${CLASSIC_VERSIONS[$i]}"
+				toc_version=$( printf "%d%02d%02d" ${BASH_REMATCH[1]} ${BASH_REMATCH[2]} ${BASH_REMATCH[3]} )
 			fi
 		done
+		# I should probably check to make sure people aren't mixing
+		# classic and retail on the same build (curse no like) TODO:?
 		game_version="$OPTARG"
 		;;
 	m)
@@ -827,13 +823,12 @@ fi
 toc_file=$( sed -e '1s/^\xEF\xBB\xBF//' -e $'s/\r//g' "$topdir/$tocfile" ) # go away bom, crlf
 if [ -z "$toc_version" ]; then
 	toc_version=$( echo "$toc_file" | awk '/^## Interface:/ { print $NF }' )
-	for v in "${!CLASSIC_VERSIONS[@]}"; do
-		if [ "$toc_version" = "${CLASSIC_VERSIONS[$v]}" ]; then
-			classic="true"
-			game_version="$v"
-			break
-		fi
-	done
+	if [[ "$toc_version" == "113"* ]]; then
+		classic="true"
+	fi
+fi
+if [ -z "$game_version" ]; then
+	game_version="${toc_version:0:1}.$( printf "%d" ${toc_version:1:2} ).$( printf "%d" ${toc_version:3:2} )"
 fi
 
 # Get the title of the project for using in the changelog.
@@ -869,6 +864,7 @@ fi
 	[ -n "$classic" ] && retail="non-retail" || retail="retail"
 	[ -z "$alpha" ] && alpha="non-alpha" || alpha="alpha"
 	echo "Build type: ${retail} ${alpha} non-debug${nolib:+ nolib}"
+	echo "Game version: ${game_version}"
 	echo
 )
 if [[ "$slug" =~ ^[0-9]+$ ]]; then
@@ -2127,9 +2123,13 @@ if [ -z "$skip_zipfile" ]; then
 				fi
 			fi
 			if [ -z "$game_version_id" ]; then
-				# 517 = retail, 67408 = classic
-				game_version_id=$( echo "$_cf_versions" | jq -c 'map(select(.gameVersionTypeID == 517)) | max_by(.id) | [.id]' 2>/dev/null )
-				game_version=$( echo "$_cf_versions" | jq -r 'map(select(.gameVersionTypeID == 517)) | max_by(.id) | .name' 2>/dev/null )
+				if [ -n "$classic" ]; then
+					game_version_type_id=67408
+				else
+					game_version_type_id=517
+				fi
+				game_version_id=$( echo "$_cf_versions" | jq -c --argjson v "$game_version_type_id" 'map(select(.gameVersionTypeID == $v)) | max_by(.id) | [.id]' 2>/dev/null )
+				game_version=$( echo "$_cf_versions" | jq -r --argjson v "$game_version_type_id" 'map(select(.gameVersionTypeID == $v)) | max_by(.id) | .name' 2>/dev/null )
 			fi
 		fi
 		if [ -z "$game_version_id" ]; then
